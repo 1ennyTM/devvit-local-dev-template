@@ -17,7 +17,7 @@ This template extends the official Devvit React template with environment-aware 
 
 1. Clone or fork this template:
    ```bash
-   git clone https://github.com/yourusername/devvit-local-dev-template.git
+   git clone https://github.com/1ennyTM/devvit-local-dev-template.git
    cd devvit-local-dev-template
    ```
 
@@ -94,7 +94,7 @@ router.get('/api/init', async (_req, res) => {
 
 ### Limitations in Local Mode
 
-- Client-side Devvit APIs (`navigateTo`, `requestExpandedMode`) require production environment
+- Client-side Devvit APIs require Devvit playtest mode
 - Mock Redis state resets on server restart (not persisted)
 
 ### Key Files
@@ -112,6 +112,6 @@ This template comes with a pre-configured cursor environment. To get started, [d
 
 ## Credits
 
-Based on the official [reddit/devvit](https://github.com/reddit/devvit) React template.
+Based on the official [reddit/devvit-template-react](https://github.com/reddit/devvit-template-react) template.
 
 BSD-3-Clause License - Original template © 2025 Reddit Inc. | Local development enhancements © 2026 Darrel Len

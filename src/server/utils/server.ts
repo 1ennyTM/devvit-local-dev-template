@@ -31,9 +31,14 @@ export function startServer(app: Express): void {
  * Start local Express server (dev mode)
  */
 function startLocalServer(app: Express): void {
-    app.listen(LOCAL_PORT, () => {
+    const server = app.listen(LOCAL_PORT, () => {
         console.log(`[Server] Local dev server running on http://localhost:${LOCAL_PORT}`);
         console.log('[Server] Using mock Redis');
+    });
+
+    server.on('error', (err: Error) => {
+        console.error(`[Server] Error: ${err.stack}`);
+        process.exit(1);
     });
 }
 
