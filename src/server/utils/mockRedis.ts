@@ -1,7 +1,7 @@
 /**
  * In-memory Redis mock for local development
  *
- * Implements the subset of Redis commands used by Skyboard services.
+ * Implements the subset of Redis commands.
  * Data persists only for the duration of the server process.
  */
 
