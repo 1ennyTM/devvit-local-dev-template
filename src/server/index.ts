@@ -7,10 +7,9 @@
 
 import express from 'express';
 import { InitResponse, IncrementResponse, DecrementResponse } from '../shared/types/api';
-import { redis } from './utils/storage';
-import { reddit, context } from './utils/auth';
-import { startServer } from './utils/server';
-import { IS_DEV } from './utils/environment';
+import { redis, reddit, context } from './devvitProxy';
+import { IS_DEV } from './devvitProxy/environment';
+import { startServer } from './devvitProxy/server';
 
 const app = express();
 

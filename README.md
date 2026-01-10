@@ -2,9 +2,12 @@
 
 A starter to build web applications on Reddit's developer platform with fast local development support.
 
-This template extends the official Devvit React template with environment-aware proxies, eliminating the need to upload to Devvit on every change.
+**No playtest waits, no duplicate code, just fast local dev. Write once, run anywhere.**
+
+This template extends the official Devvit React template with environment-aware proxies using Reddit's official `@devvit/test` mocks, eliminating the need to upload to Devvit on every change.
 
 - [Devvit](https://developers.reddit.com/): Reddit's developer platform
+- [@devvit/test](https://www.npmjs.com/package/@devvit/test): Official Reddit mocks for local development
 - [Vite](https://vite.dev/): Fast build tool with hot reload
 - [React](https://react.dev/): UI framework
 - [Express](https://expressjs.com/): Backend server
@@ -30,13 +33,11 @@ This template extends the official Devvit React template with environment-aware 
    ```bash
    npm run login
    ```
-   Follow the wizard to connect your Reddit account.
 
 4. Start local development:
    ```bash
    npm run dev:vite
    # Open http://localhost:7474/splash.html or /game.html
-   # Edit code with hot reload
    ```
 
 5. When ready, test in Devvit sandbox:
@@ -57,61 +58,52 @@ This template extends the official Devvit React template with environment-aware 
 - `npm run login`: Login to Reddit
 - `npm run check`: Type check + lint + format
 
-## How Local Development Works
+## How It Works
 
-### The Proxy Pattern
+`devvitProxy/` is an analogue to `@devvit/web/server` - same API, works offline with official `@devvit/test` mocks.
 
 ```
-Client (localhost:7474)
-    ↓ Vite proxy
-Server (localhost:3002)
-    ↓ Environment detection
-    ├─ Development → Mock Redis + Mock Auth
-    └─ Production  → Real Devvit services
+Client (localhost:7474) --> Vite --> Server (localhost:3002)
+                                         |
+                                    devvitProxy
+                                         |
+                    Dev: @devvit/test mocks | Prod: @devvit/web/server
 ```
-Instead of importing directly from `@devvit/web/server`, the template uses environment-aware proxies:
+
+### Usage
 
 ```typescript
-// Instead of this (crashes locally):
-import { redis, reddit } from '@devvit/web/server';
+import { redis, reddit, context } from './devvitProxy';
 
-// Use this (works in both environments):
-import { redis } from './utils/storage';        // Redis proxy
-import { reddit, context } from './utils/auth'; // Reddit API proxy
-
-// Routes work identically in dev and prod:
-router.get('/api/init', async (_req, res) => {
-  const count = await redis.get('count');           // Mock in dev, real in prod
-  const username = await reddit.getCurrentUsername(); // Mock in dev, real in prod
-
-  res.json({
-    postId: context.postId,  // 'dev-post-123' in dev, real ID in prod
-    count: count ? parseInt(count) : 0,
-    username: username ?? 'anonymous',
-  });
-});
+// Works identically in dev and prod
+const count = await redis.get('count');
+const username = await reddit.getCurrentUsername();
 ```
 
-### Limitations in Local Mode
+Proxies are type-cast to `@devvit/web/server` types for full IntelliSense.
 
-- Client-side Devvit APIs require Devvit playtest mode
-- Mock Redis state resets on server restart (not persisted)
+### Limitations
+
+- **Not all APIs are covered** - coverage is based on `@devvit/test` mocks. See [@devvit/test docs](https://developers.reddit.com/docs/guides/tools/devvit_test) for what's supported.
+- Mock Redis resets on restart (in-memory)
+- Client-side Devvit APIs need playtest mode
+- Always test in playtest before deploying
 
 ### Key Files
 
-- `src/server/utils/environment.ts` - Dev mode detection (NODE_ENV, DEVVIT_LOCAL, VITE_DEV)
-- `src/server/utils/storage.ts` - Redis proxy implementation
-- `src/server/utils/mockRedis.ts` - Complete in-memory Redis with all data structures
-- `src/server/utils/auth.ts` - Reddit API proxy (mock user: 'dev-user', post: 'dev-post-123')
-- `src/server/utils/server.ts` - Environment-specific server startup
-- `.env.dev` - Development environment variables
+```
+src/server/devvitProxy/
+├── index.ts       # Barrel export (mirrors @devvit/web/server)
+├── adapters/      # Wrap @devvit/test mocks
+└── *.ts           # Proxy files (redis, reddit, context, etc.)
+```
 
 ## Cursor Integration
 
-This template comes with a pre-configured cursor environment. To get started, [download cursor](https://www.cursor.com/downloads) and enable the `devvit-mcp` when prompted.
+Pre-configured cursor environment. [Download cursor](https://www.cursor.com/downloads) and enable `devvit-mcp` when prompted.
 
 ## Credits
 
-Based on the official [reddit/devvit-template-react](https://github.com/reddit/devvit-template-react) template.
+Based on [reddit/devvit-template-react](https://github.com/reddit/devvit-template-react).
 
-BSD-3-Clause License - Original template © 2025 Reddit Inc. | Local development enhancements © 2026 Darrel Len
+BSD-3-Clause License - Original © 2025 Reddit Inc. | Local dev © 2026 Darrel Len

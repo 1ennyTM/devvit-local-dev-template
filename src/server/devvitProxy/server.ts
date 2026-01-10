@@ -47,11 +47,11 @@ function startLocalServer(app: Express): void {
  */
 async function startDevvitServer(app: Express): Promise<void> {
     // Dynamic import to avoid loading Devvit modules in local dev
-    const { initializeAuth } = await import('./auth');
+    const { initializeReddit } = await import('./reddit');
     const { createServer, getServerPort } = await import('@devvit/web/server');
 
-    // Initialize auth/context before accepting requests
-    await initializeAuth();
+    // Initialize reddit/context before accepting requests
+    await initializeReddit();
 
     const server = createServer(app);
     server.on('error', (err: Error) => console.error(`[Server] Error: ${err.stack}`));
