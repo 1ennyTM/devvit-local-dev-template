@@ -1,11 +1,9 @@
-/**
- * Realtime Adapter for Official Devvit Mocks
- *
- * Wraps the official RealtimeMock from @devvit/realtime/server/test to provide
- * a high-level interface matching @devvit/web/server realtime API.
- */
+/** Wraps RealtimeMock from @devvit/realtime/server/test to match @devvit/web/server realtime API. */
 
 import type { RealtimeMock } from '@devvit/realtime/server/test';
+import type { realtime as devvitRealtime } from '@devvit/web/server';
+
+type Realtime = typeof devvitRealtime;
 
 export type JsonValue =
     | string
@@ -15,7 +13,7 @@ export type JsonValue =
     | JsonValue[]
     | { [key: string]: JsonValue };
 
-export function createRealtimeAdapter(realtimeMock: RealtimeMock) {
+export function createRealtimeAdapter(realtimeMock: RealtimeMock): Realtime {
     return {
         async send<Msg extends JsonValue>(channel: string, msg: Msg): Promise<void> {
             await realtimeMock.plugin.Send({
@@ -59,7 +57,7 @@ export function createRealtimeAdapter(realtimeMock: RealtimeMock) {
         _clear(): void {
             realtimeMock.reset();
         },
-    };
+    } as unknown as Realtime;
 }
 
-export type RealtimeAdapter = ReturnType<typeof createRealtimeAdapter>;
+export type RealtimeAdapter = Realtime;

@@ -1,48 +1,29 @@
-/**
- * Realtime proxy
- *
- * Exports either real Devvit realtime or official mock (via @devvit/test) based on environment.
- * Services import from here instead of @devvit/web/server directly.
- *
- * Usage:
- *   import { realtime } from '../utils/realtime';
- *   await realtime.send('channel', { message: 'hello' });
- */
+/** Realtime proxy - exports real Devvit realtime or official mock based on environment. */
 
-type RealtimeClient = typeof import('@devvit/web/server')['realtime'];
+import { realtime as devvitRealtime } from '@devvit/web/server';
+
+type RealtimeClient = typeof devvitRealtime;
 import { IS_DEV } from './environment';
 import { getRealtimeMock } from './devvitMocks';
-import { createRealtimeAdapter, type RealtimeAdapter } from './adapters/realtimeAdapter';
+import { createRealtimeAdapter } from './adapters/realtimeAdapter';
 
-let cachedRealtime: RealtimeAdapter | null = null;
+let cachedRealtime: RealtimeClient | null = null;
 
-function getRealtimeMock_(): RealtimeAdapter {
-    if (!cachedRealtime && IS_DEV) {
+function getRealtime(): RealtimeClient {
+    if (cachedRealtime) return cachedRealtime;
+
+    if (IS_DEV) {
         const realtimeMock = getRealtimeMock();
         cachedRealtime = createRealtimeAdapter(realtimeMock);
+    } else {
+        cachedRealtime = devvitRealtime;
     }
-    return cachedRealtime!;
+
+    return cachedRealtime;
 }
 
-let cachedDevvit: typeof import('@devvit/web/server') | null = null;
-
-async function getDevvit() {
-    if (!cachedDevvit && !IS_DEV) {
-        cachedDevvit = await import('@devvit/web/server');
-    }
-    return cachedDevvit;
-}
-
-export const realtime = {
-    async send(channel: string, msg: any) {
-        if (IS_DEV) return getRealtimeMock_().send(channel, msg);
-        const devvit = await getDevvit();
-        return devvit!.realtime.send(channel, msg);
+export const realtime: RealtimeClient = new Proxy({} as RealtimeClient, {
+    get(_target, prop) {
+        return (getRealtime() as any)[prop];
     },
-} as unknown as RealtimeClient;
-
-export async function initializeRealtime(): Promise<void> {
-    if (!IS_DEV) {
-        await getDevvit();
-    }
-}
+});

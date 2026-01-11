@@ -1,11 +1,9 @@
-/**
- * Scheduler Adapter for Official Devvit Mocks
- *
- * Wraps the official SchedulerMock from @devvit/scheduler/test to provide
- * a high-level interface matching @devvit/web/server scheduler API.
- */
+/** Wraps SchedulerMock from @devvit/scheduler/test to match @devvit/web/server scheduler API. */
 
 import type { SchedulerMock } from '@devvit/scheduler/test';
+import type { scheduler as devvitScheduler } from '@devvit/web/server';
+
+type Scheduler = typeof devvitScheduler;
 
 export interface ScheduledJobOptions {
     name: string;
@@ -33,7 +31,7 @@ export interface ScheduledCronJob {
     cron: string;
 }
 
-export function createSchedulerAdapter(schedulerMock: SchedulerMock) {
+export function createSchedulerAdapter(schedulerMock: SchedulerMock): Scheduler {
     return {
         async runJob(job: ScheduledJobOptions | ScheduledCronJobOptions): Promise<string> {
             const isCron = 'cron' in job;
@@ -80,11 +78,7 @@ export function createSchedulerAdapter(schedulerMock: SchedulerMock) {
                 }
             });
         },
-
-        _clear(): void {
-            schedulerMock.clear();
-        },
-    };
+    } as Scheduler;
 }
 
-export type SchedulerAdapter = ReturnType<typeof createSchedulerAdapter>;
+export type SchedulerAdapter = Scheduler;

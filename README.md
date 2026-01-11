@@ -4,7 +4,7 @@ A starter to build web applications on Reddit's developer platform with fast loc
 
 **No playtest waits, no duplicate code, just fast local dev. Write once, run anywhere.**
 
-This template extends the official Devvit React template with environment-aware proxies using Reddit's official `@devvit/test` mocks, eliminating the need to upload to Devvit on every change.
+This template extends the official Devvit React template with strongly-typed environment-aware proxies using Reddit's official `@devvit/test` mocks, eliminating the need to upload to Devvit on every change.
 
 - [Devvit](https://developers.reddit.com/): Reddit's developer platform
 - [@devvit/test](https://www.npmjs.com/package/@devvit/test): Official Reddit mocks for local development
@@ -75,27 +75,52 @@ Client (localhost:7474) --> Vite --> Server (localhost:3002)
 ```typescript
 import { redis, reddit, context } from './devvitProxy';
 
-// Works identically in dev and prod
-const count = await redis.get('count');
-const username = await reddit.getCurrentUsername();
+// Example from this template's /api/init endpoint
+const [count, username] = await Promise.all([
+  redis.get('count'),
+  reddit.getCurrentUsername(),
+]);
+
+// Redis operations with full type safety
+await redis.incrBy('count', 1);
+
+// Context access
+const { postId } = context;
 ```
 
-Proxies are type-cast to `@devvit/web/server` types for full IntelliSense.
+The proxy pattern uses exact `@devvit/web/server` types, ensuring TypeScript sees identical APIs in development and production. This provides full IntelliSense and compile-time type safety. Code that runs successfully locally will work in production, though production supports additional APIs beyond what's mocked locally.
 
 ### Limitations
 
-- **Not all APIs are covered** - coverage is based on `@devvit/test` mocks. See [@devvit/test docs](https://developers.reddit.com/docs/guides/tools/devvit_test) for what's supported.
+- **Not all APIs are covered** - TypeScript won't catch unsupported method usage. Unmocked methods throw runtime errors in local dev but may work in production. See [@devvit/test docs](https://developers.reddit.com/docs/guides/tools/devvit_test) for supported APIs.
 - Mock Redis resets on restart (in-memory)
-- Client-side Devvit APIs need playtest mode
+- `@devvit/client` APIs (like `showForms`, `showToast`) require playtest mode
 - Always test in playtest before deploying
 
 ### Key Files
 
 ```
 src/server/devvitProxy/
-├── index.ts       # Barrel export (mirrors @devvit/web/server)
-├── adapters/      # Wrap @devvit/test mocks
-└── *.ts           # Proxy files (redis, reddit, context, etc.)
+├── index.ts           # Barrel export (mirrors @devvit/web/server)
+├── environment.ts     # IS_DEV flag detection
+├── devvitMocks.ts     # Mock initialization (@devvit/test)
+├── server.ts          # Environment-aware startup
+├── redis.ts           # Redis proxy
+├── reddit.ts          # Reddit API proxy
+├── context.ts         # Context proxy
+├── scheduler.ts       # Scheduler proxy
+├── settings.ts        # Settings proxy
+├── media.ts           # Media proxy
+├── notifications.ts   # Notifications proxy
+├── realtime.ts        # Realtime proxy
+└── adapters/          # Type-safe wrappers for @devvit/test mocks
+    ├── redisAdapter.ts
+    ├── redditAdapter.ts
+    ├── schedulerAdapter.ts
+    ├── settingsAdapter.ts
+    ├── mediaAdapter.ts
+    ├── notificationsAdapter.ts
+    └── realtimeAdapter.ts
 ```
 
 ## Cursor Integration

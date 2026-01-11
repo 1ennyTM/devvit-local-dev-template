@@ -1,12 +1,10 @@
-/**
- * Notifications Adapter for Official Devvit Mocks
- *
- * Wraps the official NotificationsMock from @devvit/notifications/test to provide
- * a high-level interface matching @devvit/web/server notifications API.
- */
+/** Wraps NotificationsMock from @devvit/notifications/test to match @devvit/web/server notifications API. */
 
 import type { NotificationsMock } from '@devvit/notifications/test';
 import { Header } from '@devvit/shared-types/Header.js';
+import type { notifications as devvitNotifications } from '@devvit/web/server';
+
+type Notifications = typeof devvitNotifications;
 
 export type T2 = `t2_${string}`;
 export type T1 = `t1_${string}`;
@@ -59,7 +57,7 @@ function createUserMetadata(userId: T2): Record<string, { values: string[] }> {
     };
 }
 
-export function createNotificationsAdapter(notificationsMock: NotificationsMock, userId: T2) {
+export function createNotificationsAdapter(notificationsMock: NotificationsMock, userId: T2): Notifications {
     const metadata = createUserMetadata(userId);
 
     return {
@@ -114,10 +112,10 @@ export function createNotificationsAdapter(notificationsMock: NotificationsMock,
             }
         },
 
-        async listOptedInUsers(options: ListOptedInUsersOptions = {}): Promise<ListOptedInUsersResponse> {
+        async listOptedInUsers(options: ListOptedInUsersOptions): Promise<ListOptedInUsersResponse> {
             const optedInUsers = notificationsMock.getOptedInUsers();
-            const limit = options.limit ?? 1000;
-            const startIndex = options.after ? parseInt(options.after, 10) : 0;
+            const limit = options?.limit ?? 1000;
+            const startIndex = options?.after ? parseInt(options.after, 10) : 0;
 
             const userIds: string[] = optedInUsers.slice(startIndex, startIndex + limit);
             const hasMore = startIndex + limit < optedInUsers.length;
@@ -183,15 +181,7 @@ export function createNotificationsAdapter(notificationsMock: NotificationsMock,
             }
             return { hasActiveBadge: false };
         },
-
-        getSentNotifications() {
-            return notificationsMock.getSentNotifications();
-        },
-
-        _clear(): void {
-            notificationsMock.reset();
-        },
-    };
+    } as Notifications;
 }
 
-export type NotificationsAdapter = ReturnType<typeof createNotificationsAdapter>;
+export type NotificationsAdapter = Notifications;

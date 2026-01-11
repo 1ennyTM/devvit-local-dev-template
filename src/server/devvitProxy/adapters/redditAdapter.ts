@@ -1,12 +1,10 @@
-/**
- * Reddit API Adapter for Official Devvit Mocks
- *
- * Wraps the official RedditPluginMock from @devvit/reddit/test to provide
- * a high-level interface matching @devvit/web/server reddit API.
- */
+/** Wraps RedditPluginMock from @devvit/reddit/test to match @devvit/web/server reddit API. */
 
 import type { RedditPluginMock } from '@devvit/reddit/test';
 import { getDevContext } from '../devvitMocks';
+import type { reddit as devvitReddit } from '@devvit/web/server';
+
+type Reddit = typeof devvitReddit;
 
 export interface RedditUser {
     id: string;
@@ -45,7 +43,7 @@ export interface RedditComment {
     score?: number | undefined;
 }
 
-export function createRedditAdapter(redditMock: RedditPluginMock) {
+export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
     const devContext = getDevContext();
 
     return {
@@ -323,7 +321,7 @@ export function createRedditAdapter(redditMock: RedditPluginMock) {
                 reason: options.reason,
             } as any);
         },
-    };
+    } as unknown as Reddit;
 }
 
 export function createContextAdapter() {
@@ -345,5 +343,5 @@ export function createContextAdapter() {
     };
 }
 
-export type RedditAdapter = ReturnType<typeof createRedditAdapter>;
+export type RedditAdapter = Reddit;
 export type ContextAdapter = ReturnType<typeof createContextAdapter>;

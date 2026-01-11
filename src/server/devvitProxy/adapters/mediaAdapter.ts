@@ -1,11 +1,9 @@
-/**
- * Media Adapter for Official Devvit Mocks
- *
- * Wraps the official MediaMock from @devvit/media/test to provide
- * a high-level interface matching @devvit/web/server media API.
- */
+/** Wraps MediaMock from @devvit/media/test to match @devvit/web/server media API. */
 
 import type { MediaMock } from '@devvit/media/test';
+import type { media as devvitMedia } from '@devvit/web/server';
+
+type Media = typeof devvitMedia;
 
 export type MediaType = 'image' | 'gif' | 'video';
 
@@ -19,7 +17,7 @@ export interface MediaAsset {
     mediaUrl: string;
 }
 
-export function createMediaAdapter(mediaMock: MediaMock) {
+export function createMediaAdapter(mediaMock: MediaMock): Media {
     return {
         async upload(opts: UploadMediaOptions): Promise<MediaAsset> {
             try {
@@ -44,15 +42,7 @@ export function createMediaAdapter(mediaMock: MediaMock) {
                 };
             }
         },
-
-        getUploads() {
-            return mediaMock.uploads;
-        },
-
-        _clear(): void {
-            mediaMock.clear();
-        },
-    };
+    } as unknown as Media;
 }
 
-export type MediaAdapter = ReturnType<typeof createMediaAdapter>;
+export type MediaAdapter = Media;

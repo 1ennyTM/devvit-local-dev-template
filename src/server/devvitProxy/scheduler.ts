@@ -1,60 +1,29 @@
-/**
- * Scheduler proxy
- *
- * Exports either real Devvit scheduler or official mock (via @devvit/test) based on environment.
- * Services import from here instead of @devvit/web/server directly.
- *
- * Usage:
- *   import { scheduler } from '../utils/scheduler';
- *   await scheduler.runJob({ name: 'myJob', runAt: new Date() });
- */
+/** Scheduler proxy - exports real Devvit scheduler or official mock based on environment. */
 
-type SchedulerClient = typeof import('@devvit/web/server')['scheduler'];
+import { scheduler as devvitScheduler } from '@devvit/web/server';
+
+type SchedulerClient = typeof devvitScheduler;
 import { IS_DEV } from './environment';
 import { getSchedulerMock } from './devvitMocks';
-import { createSchedulerAdapter, type SchedulerAdapter } from './adapters/schedulerAdapter';
+import { createSchedulerAdapter } from './adapters/schedulerAdapter';
 
-let cachedScheduler: SchedulerAdapter | null = null;
+let cachedScheduler: SchedulerClient | null = null;
 
-function getSchedulerMock_(): SchedulerAdapter {
-    if (!cachedScheduler && IS_DEV) {
+function getScheduler(): SchedulerClient {
+    if (cachedScheduler) return cachedScheduler;
+
+    if (IS_DEV) {
         const schedulerMock = getSchedulerMock();
-        cachedScheduler = createSchedulerAdapter(schedulerMock);
+        cachedScheduler = createSchedulerAdapter(schedulerMock) as SchedulerClient;
+    } else {
+        cachedScheduler = devvitScheduler;
     }
-    return cachedScheduler!;
+
+    return cachedScheduler;
 }
 
-let cachedDevvit: typeof import('@devvit/web/server') | null = null;
-
-async function getDevvit() {
-    if (!cachedDevvit && !IS_DEV) {
-        cachedDevvit = await import('@devvit/web/server');
-    }
-    return cachedDevvit;
-}
-
-export const scheduler = {
-    async runJob(job: any) {
-        if (IS_DEV) return getSchedulerMock_().runJob(job);
-        const devvit = await getDevvit();
-        return devvit!.scheduler.runJob(job);
+export const scheduler: SchedulerClient = new Proxy({} as SchedulerClient, {
+    get(_target, prop) {
+        return (getScheduler() as any)[prop];
     },
-
-    async cancelJob(jobId: string) {
-        if (IS_DEV) return getSchedulerMock_().cancelJob(jobId);
-        const devvit = await getDevvit();
-        return devvit!.scheduler.cancelJob(jobId);
-    },
-
-    async listJobs() {
-        if (IS_DEV) return getSchedulerMock_().listJobs();
-        const devvit = await getDevvit();
-        return devvit!.scheduler.listJobs();
-    },
-} as unknown as SchedulerClient;
-
-export async function initializeScheduler(): Promise<void> {
-    if (!IS_DEV) {
-        await getDevvit();
-    }
-}
+});

@@ -1,20 +1,14 @@
-/**
- * Redis Adapter for Official Devvit Mocks
- *
- * Wraps the official RedisMock from @devvit/redis/test to provide
- * a high-level interface matching @devvit/web/server redis API.
- */
+/** Wraps RedisMock from @devvit/redis/test to match @devvit/web/server redis API. */
 
 import type { RedisMock } from '@devvit/redis/test';
+import type { redis as devvitRedis } from '@devvit/web/server';
 
-export function createRedisAdapter(redisMock: RedisMock) {
+type Redis = typeof devvitRedis;
+
+export function createRedisAdapter(redisMock: RedisMock): Redis {
     const plugin = redisMock.plugin;
 
     return {
-        // =================================
-        // HASH COMMANDS
-        // =================================
-
         async hGet(key: string, field: string): Promise<string | undefined> {
             const result = await plugin.HGet({ key, field });
             return result.value || undefined;
@@ -89,10 +83,6 @@ export function createRedisAdapter(redisMock: RedisMock) {
             return (result as any).success === 1;
         },
 
-        // =================================
-        // STRING COMMANDS
-        // =================================
-
         async get(key: string): Promise<string | undefined> {
             const result = await plugin.Get({ key });
             return result.value || undefined;
@@ -136,10 +126,6 @@ export function createRedisAdapter(redisMock: RedisMock) {
             await plugin.MSet({ keyValues } as any);
         },
 
-        // =================================
-        // KEY COMMANDS
-        // =================================
-
         async del(key: string): Promise<number> {
             const result = await plugin.Del({ keys: [key] });
             return Number(result.value ?? 0);
@@ -168,10 +154,6 @@ export function createRedisAdapter(redisMock: RedisMock) {
             const result = await plugin.ExpireTime({ key });
             return Number(result.value ?? -1);
         },
-
-        // =================================
-        // SORTED SET COMMANDS
-        // =================================
 
         async zAdd(key: string, ...members: { score: number; member: string }[]): Promise<number> {
             const result = await plugin.ZAdd({ key, members });
@@ -248,20 +230,12 @@ export function createRedisAdapter(redisMock: RedisMock) {
             return Number(result.value ?? 0);
         },
 
-        // =================================
-        // TRANSACTION COMMANDS
-        // =================================
-
         async watch(...keys: string[]): Promise<RedisTransaction> {
             const watchResult = await plugin.Watch({ keys });
             const transactionId = (watchResult as any).id || (watchResult as any).transactionId;
 
             return createRedisTransaction(plugin, transactionId);
         },
-
-        // =================================
-        // BITFIELD COMMANDS
-        // =================================
 
         async bitfield(
             key: string,
@@ -277,10 +251,6 @@ export function createRedisAdapter(redisMock: RedisMock) {
             return (result.results || []).map((v: any) => Number(v ?? 0));
         },
 
-        // =================================
-        // DEV UTILITIES
-        // =================================
-
         async _clear(): Promise<void> {
             await redisMock.clear();
         },
@@ -292,7 +262,7 @@ export function createRedisAdapter(redisMock: RedisMock) {
                 zsets: 0,
             };
         },
-    };
+    } as unknown as Redis;
 }
 
 export interface RedisTransaction {
@@ -344,4 +314,4 @@ function createRedisTransaction(plugin: any, transactionId: string): RedisTransa
     };
 }
 
-export type RedisAdapter = ReturnType<typeof createRedisAdapter>;
+export type RedisAdapter = Redis;
