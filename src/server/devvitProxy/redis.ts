@@ -4,8 +4,6 @@ import { redis as devvitRedis } from '@devvit/web/server';
 
 type RedisClient = typeof devvitRedis;
 import { IS_DEV } from './environment';
-import { getRedisMock } from './devvitMocks';
-import { createRedisAdapter } from './adapters/redisAdapter';
 
 let cachedRedis: RedisClient | null = null;
 
@@ -13,6 +11,9 @@ async function getRedis(): Promise<RedisClient> {
     if (cachedRedis) return cachedRedis;
 
     if (IS_DEV) {
+        // Dynamic import to avoid bundling dev dependencies in production
+        const { getRedisMock } = await import('./devvitMocks');
+        const { createRedisAdapter } = await import('./adapters/redisAdapter');
         const redisMock = await getRedisMock();
         cachedRedis = createRedisAdapter(redisMock);
     } else {

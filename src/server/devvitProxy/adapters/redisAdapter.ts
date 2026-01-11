@@ -16,23 +16,35 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
 
         async hGetAll(key: string): Promise<Record<string, string>> {
             const result = await plugin.HGetAll({ key });
-            const fieldValues: Record<string, string> = {};
-            if (result.fieldValues && Array.isArray(result.fieldValues)) {
-                for (const fv of result.fieldValues) {
-                    if (fv && typeof fv === 'object' && 'field' in fv && 'value' in fv) {
-                        const field = fv.field;
-                        const value = fv.value;
-                        if (field && value) {
-                            fieldValues[field] = value;
-                        }
+
+            // RedisMock (non-transaction) returns { fieldValues: { field1: value1, field2: value2, ... } }
+            // This is because _queueOrRun returns operation() directly without applying mapper
+            const fieldValuesObj = (result as any)?.fieldValues;
+            if (fieldValuesObj && typeof fieldValuesObj === 'object' && !Array.isArray(fieldValuesObj)) {
+                return fieldValuesObj as Record<string, string>;
+            }
+
+            // Fallback: Handle { values: { values: [field1, value1, ...] } } format (transaction mode)
+            const flatArray = (result as any)?.values?.values;
+            if (Array.isArray(flatArray)) {
+                const fieldValues: Record<string, string> = {};
+                for (let i = 0; i < flatArray.length; i += 2) {
+                    const field = flatArray[i];
+                    const value = flatArray[i + 1];
+                    if (field && value !== undefined) {
+                        fieldValues[field] = value;
                     }
                 }
+                return fieldValues;
             }
-            return fieldValues;
+
+            return {};
         },
 
         async hSet(key: string, fieldValues: Record<string, string>): Promise<number> {
-            const result = await plugin.HSet({ key, ...fieldValues } as any);
+            // Convert Record to fv array format expected by RedisMock protobuf API
+            const fv = Object.entries(fieldValues).map(([field, value]) => ({ field, value }));
+            const result = await plugin.HSet({ key, fv } as any);
             return Number(result.value ?? 0);
         },
 
@@ -123,7 +135,9 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
         },
 
         async mSet(keyValues: Record<string, string>): Promise<void> {
-            await plugin.MSet({ keyValues } as any);
+            // Convert Record to kv array format expected by RedisMock protobuf API
+            const kv = Object.entries(keyValues).map(([key, value]) => ({ key, value }));
+            await plugin.MSet({ kv } as any);
         },
 
         async del(key: string): Promise<number> {

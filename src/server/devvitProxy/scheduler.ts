@@ -4,15 +4,16 @@ import { scheduler as devvitScheduler } from '@devvit/web/server';
 
 type SchedulerClient = typeof devvitScheduler;
 import { IS_DEV } from './environment';
-import { getSchedulerMock } from './devvitMocks';
-import { createSchedulerAdapter } from './adapters/schedulerAdapter';
 
 let cachedScheduler: SchedulerClient | null = null;
 
-function getScheduler(): SchedulerClient {
+async function getScheduler(): Promise<SchedulerClient> {
     if (cachedScheduler) return cachedScheduler;
 
     if (IS_DEV) {
+        // Dynamic import to avoid bundling dev dependencies in production
+        const { getSchedulerMock } = await import('./devvitMocks');
+        const { createSchedulerAdapter } = await import('./adapters/schedulerAdapter');
         const schedulerMock = getSchedulerMock();
         cachedScheduler = createSchedulerAdapter(schedulerMock) as SchedulerClient;
     } else {
@@ -24,6 +25,6 @@ function getScheduler(): SchedulerClient {
 
 export const scheduler: SchedulerClient = new Proxy({} as SchedulerClient, {
     get(_target, prop) {
-        return (getScheduler() as any)[prop];
+        return getScheduler().then((s) => (s as any)[prop]);
     },
 });

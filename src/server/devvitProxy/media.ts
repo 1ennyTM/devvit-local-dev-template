@@ -4,15 +4,16 @@ import { media as devvitMedia } from '@devvit/web/server';
 
 type MediaClient = typeof devvitMedia;
 import { IS_DEV } from './environment';
-import { getMediaMock } from './devvitMocks';
-import { createMediaAdapter } from './adapters/mediaAdapter';
 
 let cachedMedia: MediaClient | null = null;
 
-function getMedia(): MediaClient {
+async function getMedia(): Promise<MediaClient> {
     if (cachedMedia) return cachedMedia;
 
     if (IS_DEV) {
+        // Dynamic import to avoid bundling dev dependencies in production
+        const { getMediaMock } = await import('./devvitMocks');
+        const { createMediaAdapter } = await import('./adapters/mediaAdapter');
         const mediaMock = getMediaMock();
         cachedMedia = createMediaAdapter(mediaMock);
     } else {
@@ -24,6 +25,6 @@ function getMedia(): MediaClient {
 
 export const media: MediaClient = new Proxy({} as MediaClient, {
     get(_target, prop) {
-        return (getMedia() as any)[prop];
+        return getMedia().then((m) => (m as any)[prop]);
     },
 });

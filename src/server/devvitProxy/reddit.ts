@@ -4,15 +4,16 @@ import { reddit as devvitReddit } from '@devvit/web/server';
 
 type RedditClient = typeof devvitReddit;
 import { IS_DEV } from './environment';
-import { getRedditMock } from './devvitMocks';
-import { createRedditAdapter } from './adapters/redditAdapter';
 
 let cachedReddit: RedditClient | null = null;
 
-function getReddit(): RedditClient {
+async function getReddit(): Promise<RedditClient> {
     if (cachedReddit) return cachedReddit;
 
     if (IS_DEV) {
+        // Dynamic import to avoid bundling dev dependencies in production
+        const { getRedditMock } = await import('./devvitMocks');
+        const { createRedditAdapter } = await import('./adapters/redditAdapter');
         const redditMock = getRedditMock();
         cachedReddit = createRedditAdapter(redditMock);
     } else {
@@ -24,6 +25,8 @@ function getReddit(): RedditClient {
 
 export const reddit: RedditClient = new Proxy({} as RedditClient, {
     get(_target, prop) {
-        return (getReddit() as any)[prop];
+        return (...args: any[]) => {
+            return getReddit().then(r => (r as any)[prop](...args));
+        };
     },
 });

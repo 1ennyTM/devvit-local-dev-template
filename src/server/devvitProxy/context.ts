@@ -5,14 +5,15 @@ import { context as devvitContext } from '@devvit/web/server';
 type ContextClient = typeof devvitContext;
 
 import { IS_DEV } from './environment';
-import { createContextAdapter } from './adapters/redditAdapter';
 
 let cachedContext: ContextClient | null = null;
 
-function getContext(): ContextClient {
+async function getContext(): Promise<ContextClient> {
     if (cachedContext) return cachedContext;
 
     if (IS_DEV) {
+        // Dynamic import to avoid bundling dev dependencies in production
+        const { createContextAdapter } = await import('./adapters/redditAdapter');
         const contextMock = createContextAdapter();
         cachedContext = contextMock as unknown as ContextClient;
     } else {
@@ -24,6 +25,6 @@ function getContext(): ContextClient {
 
 export const context: ContextClient = new Proxy({} as ContextClient, {
     get(_target, prop) {
-        return (getContext() as any)[prop];
+        return getContext().then((c) => (c as any)[prop]);
     },
 });

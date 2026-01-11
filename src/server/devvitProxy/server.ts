@@ -2,7 +2,7 @@
  * Server startup utility
  *
  * Handles environment-specific server startup:
- * - Local dev: Plain Express on port 3XXX
+ * - Local dev: Plain Express on port 3XXX + mock Redis seeding
  * - Production: Devvit server wrapper
  *
  * Server code is agnostic - this is the only place that checks environment.
@@ -19,26 +19,38 @@ const LOCAL_PORT = parseInt(process.env.SERVER_PORT || '3002', 10);
  *
  * @param app - Express application instance
  */
-export function startServer(app: Express): void {
+export async function startServer(app: Express): Promise<void> {
     if (IS_DEV) {
-        startLocalServer(app);
+        await startLocalServer(app);
     } else {
-        startDevvitServer(app);
+        await startDevvitServer(app);
     }
 }
 
 /**
  * Start local Express server (dev mode)
+ * Seeds mock Redis with test data after server starts
  */
-function startLocalServer(app: Express): void {
-    const server = app.listen(LOCAL_PORT, () => {
-        console.log(`[Server] Local dev server running on http://localhost:${LOCAL_PORT}`);
-        console.log('[Server] Using mock Redis');
-    });
+async function startLocalServer(app: Express): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const server = app.listen(LOCAL_PORT, async () => {
+            console.log(`[Server] Local dev server running on http://localhost:${LOCAL_PORT}`);
+            console.log('[Server] Using mock Redis');
 
-    server.on('error', (err: Error) => {
-        console.error(`[Server] Error: ${err.stack}`);
-        process.exit(1);
+            try {
+                // Seed mock Redis with test data
+                const { seedMockRedis } = await import('../dev/seedMockRedis');
+                await seedMockRedis();
+            } catch (error) {
+                console.warn('[Server] Skipping mock Redis seed (no seed data or error occurred):', error);
+            }
+            resolve();
+        });
+
+        server.on('error', (err: Error) => {
+            console.error(`[Server] Error: ${err.stack}`);
+            reject(err);
+        });
     });
 }
 
