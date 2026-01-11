@@ -45,6 +45,12 @@ export const scheduler = {
         const devvit = await getDevvit();
         return devvit!.scheduler.cancelJob(jobId);
     },
+
+    async listJobs() {
+        if (IS_DEV) return getSchedulerMock_().listJobs();
+        const devvit = await getDevvit();
+        return devvit!.scheduler.listJobs();
+    },
 } as unknown as SchedulerClient;
 
 export async function initializeScheduler(): Promise<void> {

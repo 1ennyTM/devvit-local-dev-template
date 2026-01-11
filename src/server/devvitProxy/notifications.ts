@@ -39,6 +39,57 @@ export const notifications = {
         const devvit = await getDevvit();
         return devvit!.notifications.enqueue(options);
     },
+
+    async optInCurrentUser() {
+        if (IS_DEV) return getNotificationsMock_().optInCurrentUser();
+        const devvit = await getDevvit();
+        return devvit!.notifications.optInCurrentUser();
+    },
+
+    async optOutCurrentUser() {
+        if (IS_DEV) return getNotificationsMock_().optOutCurrentUser();
+        const devvit = await getDevvit();
+        return devvit!.notifications.optOutCurrentUser();
+    },
+
+    async listOptedInUsers(options: any) {
+        if (IS_DEV) return getNotificationsMock_().listOptedInUsers(options);
+        const devvit = await getDevvit();
+        return devvit!.notifications.listOptedInUsers(options);
+    },
+
+    async isOptedIn(userId: any) {
+        if (IS_DEV) return getNotificationsMock_().isOptedIn(userId);
+        const devvit = await getDevvit();
+        return devvit!.notifications.isOptedIn(userId);
+    },
+
+    async *listOptedInUsersIterator(options?: any) {
+        if (IS_DEV) {
+            yield* getNotificationsMock_().listOptedInUsersIterator(options);
+            return;
+        }
+        const devvit = await getDevvit();
+        yield* devvit!.notifications.listOptedInUsersIterator(options);
+    },
+
+    async requestShowGamesDrawerBadge(options: any) {
+        if (IS_DEV) return getNotificationsMock_().requestShowGamesDrawerBadge(options);
+        const devvit = await getDevvit();
+        return devvit!.notifications.requestShowGamesDrawerBadge(options);
+    },
+
+    async dismissGamesDrawerBadge() {
+        if (IS_DEV) return getNotificationsMock_().dismissGamesDrawerBadge();
+        const devvit = await getDevvit();
+        return devvit!.notifications.dismissGamesDrawerBadge();
+    },
+
+    async getGamesDrawerBadgeStatus() {
+        if (IS_DEV) return getNotificationsMock_().getGamesDrawerBadgeStatus();
+        const devvit = await getDevvit();
+        return devvit!.notifications.getGamesDrawerBadgeStatus();
+    },
 } as unknown as NotificationsClient;
 
 export async function initializeNotifications(): Promise<void> {
