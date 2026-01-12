@@ -1,4 +1,4 @@
-## Devvit React Starter with Local Development
+## Devvit React Starter with Local Development [Experimental]
 
 A starter to build web applications on Reddit's developer platform with fast local development support.
 
