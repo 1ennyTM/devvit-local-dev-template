@@ -106,8 +106,16 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
             return result.value || undefined;
         },
 
-        async set(key: string, value: string): Promise<void> {
-            await plugin.Set({ key, value, expiration: 0, nx: false, xx: false });
+        async set(key: string, value: string, options?: { expiration?: Date }): Promise<void> {
+            // Convert Date to TTL (seconds from now), matching production behavior
+            let expiration = 0;
+            if (options?.expiration) {
+                expiration = Math.floor((options.expiration.getTime() - Date.now()) / 1000);
+                if (expiration < 1) {
+                    expiration = 1; // minimum 1 second per production
+                }
+            }
+            await plugin.Set({ key, value, expiration, nx: false, xx: false });
         },
 
         async incrBy(key: string, increment: number): Promise<number> {
@@ -156,7 +164,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
         async exists(key: string): Promise<boolean> {
             const result = await plugin.Exists({ keys: [key] });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            return ((result as any).count || (result as any).exists || 0) > 0;
+            return ((result as any).existingKeys || 0) > 0;
         },
 
         async type(key: string): Promise<string> {
@@ -221,8 +229,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
         },
 
         async zIncrBy(key: string, member: string, increment: number): Promise<number> {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const result = await plugin.ZIncrBy({ key: { key }, member, value: increment } as any);
+            const result = await plugin.ZIncrBy({ key, member, value: increment });
             return Number(result.value ?? 0);
         },
 
@@ -231,13 +238,12 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
             cursor: number,
             options?: { match?: string; count?: number }
         ): Promise<{ cursor: number; members: { member: string; score: number }[] }> {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.ZScan({
-                key: { key },
+                key,
                 cursor,
                 pattern: options?.match,
                 count: options?.count,
-            } as any);
+            });
             return {
                 cursor: Number(result.cursor ?? 0),
                 members: result.members || [],
@@ -302,7 +308,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
 
 export interface RedisTransaction {
     multi(): Promise<void>;
-    exec(): Promise<number[]>;
+    exec(): Promise<any[]>;
     discard(): Promise<void>;
     unwatch(): Promise<void>;
     incrBy(key: string, increment: number): Promise<void>;
@@ -317,14 +323,17 @@ function createRedisTransaction(plugin: any, transactionId: string): RedisTransa
             await plugin.Multi({ id: transactionId });
         },
 
-        async exec(): Promise<number[]> {
+        async exec(): Promise<any[]> {
             const result = await plugin.Exec({ id: transactionId });
-            const responses = result.responses || [];
+            const response = result.response || [];
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            return responses.map((r: any) => {
-                if (r.int64Value !== undefined) return Number(r.int64Value.value || r.int64Value);
-                if (r.stringValue !== undefined) return r.stringValue.value || r.stringValue;
-                if (r.doubleValue !== undefined) return Number(r.doubleValue.value || r.doubleValue);
+            return response.map((r: any) => {
+                if (r.members !== undefined) return r.members;
+                if (r.nil !== undefined) return null;
+                if (r.num !== undefined) return r.num;
+                if (r.values !== undefined) return r.values.values;
+                if (r.str !== undefined) return r.str;
+                if (r.dbl !== undefined) return r.dbl;
                 return r;
             });
         },
@@ -341,8 +350,16 @@ function createRedisTransaction(plugin: any, transactionId: string): RedisTransa
             await plugin.IncrBy({ key, value: increment, transactionId: { id: transactionId } });
         },
 
-        async set(key: string, value: string): Promise<void> {
-            await plugin.Set({ key, value, expiration: 0, nx: false, xx: false, transactionId: { id: transactionId } });
+        async set(key: string, value: string, options?: { expiration?: Date }): Promise<void> {
+            // Convert Date to TTL (seconds from now), matching production behavior
+            let expiration = 0;
+            if (options?.expiration) {
+                expiration = Math.floor((options.expiration.getTime() - Date.now()) / 1000);
+                if (expiration < 1) {
+                    expiration = 1; // minimum 1 second per production
+                }
+            }
+            await plugin.Set({ key, value, expiration, nx: false, xx: false, transactionId: { id: transactionId } });
         },
 
         async get(key: string): Promise<void> {
