@@ -7,25 +7,32 @@ import { IS_DEV } from './environment';
 
 let cachedRedis: RedisClient | null = null;
 
+if (!IS_DEV) {
+    cachedRedis = devvitRedis;
+}
+
 async function getRedis(): Promise<RedisClient> {
     if (cachedRedis) return cachedRedis;
 
     if (IS_DEV) {
-        // Dynamic import to avoid bundling dev dependencies in production
         const { getRedisMock } = await import('./devvitMocks');
         const { createRedisAdapter } = await import('./adapters/redisAdapter');
         const redisMock = await getRedisMock();
         cachedRedis = createRedisAdapter(redisMock);
-    } else {
-        cachedRedis = devvitRedis;
     }
 
-    return cachedRedis;
+    return cachedRedis!;
 }
 
 export const redis: RedisClient = new Proxy({} as RedisClient, {
     get(_target, prop) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (...args: any[]) => {
+            if (cachedRedis) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return (cachedRedis as any)[prop](...args);
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return getRedis().then((r) => (r as any)[prop](...args));
         };
     },

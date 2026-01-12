@@ -1,15 +1,5 @@
 /** Initializes official @devvit/test mocks for local development. */
 
-import { RedisMock } from '@devvit/redis/test';
-import { RedditPluginMock } from '@devvit/reddit/test';
-import { SchedulerMock } from '@devvit/scheduler/test';
-import { SettingsMock } from '@devvit/settings/test';
-import { NotificationsMock } from '@devvit/notifications/test';
-import { MediaMock } from '@devvit/media/test';
-import { RealtimeMock } from '@devvit/realtime/server/test';
-import { Redis } from 'ioredis';
-import { RedisMemoryServer } from 'redis-memory-server';
-
 export const DEV_CONFIG = {
     username: 'u/dev-user123',
     userId: 't2_dev123' as const,
@@ -19,18 +9,22 @@ export const DEV_CONFIG = {
 } as const;
 
 const DEFAULT_SETTINGS: Record<string, string | number | boolean> = {};
-let redisServer: RedisMemoryServer | null = null;
-let redisConnection: Redis | null = null;
-let redisMockInstance: RedisMock | null = null;
-let redditMockInstance: RedditPluginMock | null = null;
-let schedulerMockInstance: SchedulerMock | null = null;
-let settingsMockInstance: SettingsMock | null = null;
-let notificationsMockInstance: NotificationsMock | null = null;
-let mediaMockInstance: MediaMock | null = null;
-let realtimeMockInstance: RealtimeMock | null = null;
+let redisServer: any | null = null;
+let redisConnection: any | null = null;
+let redisMockInstance: any | null = null;
+let redditMockInstance: any | null = null;
+let schedulerMockInstance: any | null = null;
+let settingsMockInstance: any | null = null;
+let notificationsMockInstance: any | null = null;
+let mediaMockInstance: any | null = null;
+let realtimeMockInstance: any | null = null;
 
-async function initializeRedisMock(): Promise<RedisMock> {
+async function initializeRedisMock(): Promise<any> {
     if (redisMockInstance) return redisMockInstance;
+
+    const { RedisMemoryServer } = await import('redis-memory-server');
+    const { Redis } = await import('ioredis');
+    const { RedisMock } = await import('@devvit/redis/test');
 
     redisServer = new RedisMemoryServer();
     const host = await redisServer.getHost();
@@ -42,12 +36,14 @@ async function initializeRedisMock(): Promise<RedisMock> {
     return redisMockInstance;
 }
 
-export async function getRedisMock(): Promise<RedisMock> {
+export async function getRedisMock(): Promise<any> {
     return await initializeRedisMock();
 }
 
-function initializeRedditMock(): RedditPluginMock {
+async function initializeRedditMock(): Promise<any> {
     if (redditMockInstance) return redditMockInstance;
+
+    const { RedditPluginMock } = await import('@devvit/reddit/test');
 
     redditMockInstance = new RedditPluginMock();
 
@@ -65,63 +61,73 @@ function initializeRedditMock(): RedditPluginMock {
     return redditMockInstance;
 }
 
-export function getRedditMock(): RedditPluginMock {
-    return initializeRedditMock();
+export async function getRedditMock(): Promise<any> {
+    return await initializeRedditMock();
 }
 
-function initializeSchedulerMock(): SchedulerMock {
+async function initializeSchedulerMock(): Promise<any> {
     if (schedulerMockInstance) return schedulerMockInstance;
+
+    const { SchedulerMock } = await import('@devvit/scheduler/test');
 
     schedulerMockInstance = new SchedulerMock();
     return schedulerMockInstance;
 }
 
-export function getSchedulerMock(): SchedulerMock {
-    return initializeSchedulerMock();
+export async function getSchedulerMock(): Promise<any> {
+    return await initializeSchedulerMock();
 }
 
-function initializeSettingsMock(): SettingsMock {
+async function initializeSettingsMock(): Promise<any> {
     if (settingsMockInstance) return settingsMockInstance;
+
+    const { SettingsMock } = await import('@devvit/settings/test');
 
     settingsMockInstance = new SettingsMock(DEFAULT_SETTINGS);
     return settingsMockInstance;
 }
 
-export function getSettingsMock(): SettingsMock {
-    return initializeSettingsMock();
+export async function getSettingsMock(): Promise<any> {
+    return await initializeSettingsMock();
 }
 
-function initializeNotificationsMock(): NotificationsMock {
+async function initializeNotificationsMock(): Promise<any> {
     if (notificationsMockInstance) return notificationsMockInstance;
+
+    const { NotificationsMock } = await import('@devvit/notifications/test');
 
     notificationsMockInstance = new NotificationsMock();
     return notificationsMockInstance;
 }
 
-export function getNotificationsMock(): NotificationsMock {
-    return initializeNotificationsMock();
+export async function getNotificationsMock(): Promise<any> {
+    return await initializeNotificationsMock();
 }
 
-function initializeMediaMock(): MediaMock {
+async function initializeMediaMock(): Promise<any> {
     if (mediaMockInstance) return mediaMockInstance;
+
+    const { MediaMock } = await import('@devvit/media/test');
 
     mediaMockInstance = new MediaMock();
     return mediaMockInstance;
 }
 
-export function getMediaMock(): MediaMock {
-    return initializeMediaMock();
+export async function getMediaMock(): Promise<any> {
+    return await initializeMediaMock();
 }
 
-function initializeRealtimeMock(): RealtimeMock {
+async function initializeRealtimeMock(): Promise<any> {
     if (realtimeMockInstance) return realtimeMockInstance;
+
+    const { RealtimeMock } = await import('@devvit/realtime/server/test');
 
     realtimeMockInstance = new RealtimeMock();
     return realtimeMockInstance;
 }
 
-export function getRealtimeMock(): RealtimeMock {
-    return initializeRealtimeMock();
+export async function getRealtimeMock(): Promise<any> {
+    return await initializeRealtimeMock();
 }
 
 export function getDevContext() {

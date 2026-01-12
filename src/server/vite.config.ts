@@ -18,6 +18,7 @@ const devOnlyExternals = [
 export default defineConfig({
   ssr: {
     noExternal: true,
+    external: devOnlyExternals,
   },
   logLevel: 'warn',
   build: {

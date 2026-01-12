@@ -7,24 +7,33 @@ import { IS_DEV } from './environment';
 
 let cachedSettings: SettingsClient | null = null;
 
+if (!IS_DEV) {
+    cachedSettings = devvitSettings;
+}
+
 async function getSettings(): Promise<SettingsClient> {
     if (cachedSettings) return cachedSettings;
 
     if (IS_DEV) {
-        // Dynamic import to avoid bundling dev dependencies in production
         const { getSettingsMock } = await import('./devvitMocks');
         const { createSettingsAdapter } = await import('./adapters/settingsAdapter');
         const settingsMock = getSettingsMock();
         cachedSettings = createSettingsAdapter(settingsMock);
-    } else {
-        cachedSettings = devvitSettings;
     }
 
-    return cachedSettings;
+    return cachedSettings!;
 }
 
 export const settings: SettingsClient = new Proxy({} as SettingsClient, {
     get(_target, prop) {
-        return getSettings().then((s) => (s as any)[prop]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (...args: any[]) => {
+            if (cachedSettings) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return (cachedSettings as any)[prop](...args);
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return getSettings().then((s) => (s as any)[prop](...args));
+        };
     },
 });

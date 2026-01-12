@@ -127,9 +127,11 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
 
         async getUserById(userId: string): Promise<RedditUser | null> {
             try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const result = await redditMock.users.plugin.UserDataByAccountIds({
                     ids: userId,
                 } as any);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const userData = (result as any).users?.[userId] ?? (result as any)[userId];
                 if (userData) {
                     return {
@@ -148,11 +150,14 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
 
         async getPostById(postId: string): Promise<RedditPost | null> {
             try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const result = await redditMock.linksAndComments.plugin.Info({
                     thingIds: [postId],
                     subreddits: [],
                 } as any);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const children = (result as any).data?.children ?? (result as any).children ?? [];
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const postData = children.find((c: any) => c.data?.id === postId || c.data?.name === postId);
                 if (postData?.data) {
                     const data = postData.data;
@@ -175,11 +180,14 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
 
         async getCommentById(commentId: string): Promise<RedditComment | null> {
             try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const result = await redditMock.linksAndComments.plugin.Info({
                     thingIds: [commentId],
                     subreddits: [],
                 } as any);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const children = (result as any).data?.children ?? (result as any).children ?? [];
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const commentData = children.find((c: any) => c.data?.id === commentId || c.data?.name === commentId);
                 if (commentData?.data) {
                     const data = commentData.data;
@@ -207,11 +215,13 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
             const subredditName = options.subredditName ?? devContext.subredditName;
 
             try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const result = await redditMock.linksAndComments.plugin.SubmitCustomPost({
                     sr: subredditName,
                     title: options.title,
                     kind: 'custom',
                 } as any);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const postId = (result as any).json?.data?.id ?? (result as any).id ?? devContext.postId;
                 return {
                     id: postId,
@@ -227,10 +237,12 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
 
         async submitComment(options: { id: string; text: string }): Promise<{ id: string }> {
             try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const result = await redditMock.linksAndComments.plugin.Comment({
                     thingId: options.id,
                     text: options.text,
                 } as any);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const commentId = (result as any).json?.data?.things?.[0]?.data?.id ?? 't1_devcomment123';
                 return { id: commentId };
             } catch {
@@ -246,6 +258,7 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
          * @param direction - 1 for upvote, -1 for downvote, 0 to remove vote
          */
         async vote(thingId: string, direction: 1 | -1 | 0): Promise<void> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await redditMock.linksAndComments.plugin.Vote({
                 id: thingId,
                 dir: direction,
@@ -253,6 +266,7 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
         },
 
         async save(thingId: string): Promise<void> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await redditMock.linksAndComments.plugin.Save({ id: thingId } as any);
         },
 
@@ -296,6 +310,7 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
             postId: string;
             data: Record<string, unknown>;
         }): Promise<void> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await redditMock.linksAndComments.plugin.EditCustomPost({
                 thingId: options.postId,
                 ...options.data,
@@ -306,6 +321,7 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
             thingId: string;
             text: string;
         }): Promise<void> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await redditMock.linksAndComments.plugin.EditUserText({
                 thingId: options.thingId,
                 text: options.text,
@@ -316,6 +332,7 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
             thingId: string;
             reason: string;
         }): Promise<void> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await redditMock.linksAndComments.plugin.Report({
                 thingId: options.thingId,
                 reason: options.reason,

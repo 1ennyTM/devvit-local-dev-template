@@ -35,9 +35,13 @@ async function startLocalServer(app: Express): Promise<void> {
     return new Promise((resolve, reject) => {
         const server = app.listen(LOCAL_PORT, async () => {
             console.log(`[Server] Local dev server running on http://localhost:${LOCAL_PORT}`);
-            console.log('[Server] Using mock Redis');
+            console.log('[Server] Using mock Redis and mock APIs');
 
             try {
+                // Initialize context before handling requests
+                const { initializeContext } = await import('./context');
+                await initializeContext();
+
                 // Seed mock Redis with test data
                 const { seedMockRedis } = await import('../dev/seedMockRedis');
                 await seedMockRedis();

@@ -7,25 +7,32 @@ import { IS_DEV } from './environment';
 
 let cachedReddit: RedditClient | null = null;
 
+if (!IS_DEV) {
+    cachedReddit = devvitReddit;
+}
+
 async function getReddit(): Promise<RedditClient> {
     if (cachedReddit) return cachedReddit;
 
     if (IS_DEV) {
-        // Dynamic import to avoid bundling dev dependencies in production
         const { getRedditMock } = await import('./devvitMocks');
         const { createRedditAdapter } = await import('./adapters/redditAdapter');
         const redditMock = getRedditMock();
         cachedReddit = createRedditAdapter(redditMock);
-    } else {
-        cachedReddit = devvitReddit;
     }
 
-    return cachedReddit;
+    return cachedReddit!;
 }
 
 export const reddit: RedditClient = new Proxy({} as RedditClient, {
     get(_target, prop) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (...args: any[]) => {
+            if (cachedReddit) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return (cachedReddit as any)[prop](...args);
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return getReddit().then(r => (r as any)[prop](...args));
         };
     },

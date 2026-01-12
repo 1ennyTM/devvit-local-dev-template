@@ -19,12 +19,14 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
 
             // RedisMock (non-transaction) returns { fieldValues: { field1: value1, field2: value2, ... } }
             // This is because _queueOrRun returns operation() directly without applying mapper
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const fieldValuesObj = (result as any)?.fieldValues;
             if (fieldValuesObj && typeof fieldValuesObj === 'object' && !Array.isArray(fieldValuesObj)) {
                 return fieldValuesObj as Record<string, string>;
             }
 
             // Fallback: Handle { values: { values: [field1, value1, ...] } } format (transaction mode)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const flatArray = (result as any)?.values?.values;
             if (Array.isArray(flatArray)) {
                 const fieldValues: Record<string, string> = {};
@@ -44,6 +46,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
         async hSet(key: string, fieldValues: Record<string, string>): Promise<number> {
             // Convert Record to fv array format expected by RedisMock protobuf API
             const fv = Object.entries(fieldValues).map(([field, value]) => ({ field, value }));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.HSet({ key, fv } as any);
             return Number(result.value ?? 0);
         },
@@ -60,6 +63,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
 
         async hMGet(key: string, fields: string[]): Promise<(string | undefined)[]> {
             const result = await plugin.HMGet({ key, fields });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (result.values || []).map((v: any) => v || undefined);
         },
 
@@ -68,6 +72,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
             cursor: number,
             options?: { match?: string; count?: number }
         ): Promise<{ cursor: number; fieldValues: { field: string; value: string }[] }> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.HScan({
                 key,
                 cursor,
@@ -92,6 +97,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
 
         async hSetNX(key: string, field: string, value: string): Promise<boolean> {
             const result = await plugin.HSetNX({ key, field, value });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (result as any).success === 1;
         },
 
@@ -131,12 +137,14 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
 
         async mGet(keys: string[]): Promise<(string | null)[]> {
             const result = await plugin.MGet({ keys });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (result.values || []).map((v: any) => v || null);
         },
 
         async mSet(keyValues: Record<string, string>): Promise<void> {
             // Convert Record to kv array format expected by RedisMock protobuf API
             const kv = Object.entries(keyValues).map(([key, value]) => ({ key, value }));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await plugin.MSet({ kv } as any);
         },
 
@@ -147,6 +155,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
 
         async exists(key: string): Promise<boolean> {
             const result = await plugin.Exists({ keys: [key] });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return ((result as any).count || (result as any).exists || 0) > 0;
         },
 
@@ -179,6 +188,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
             start: number,
             stop: number
         ): Promise<{ member: string; score: number }[]> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.ZRange({
                 key: { key },
                 start: start.toString(),
@@ -188,11 +198,13 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
         },
 
         async zScore(key: string, member: string): Promise<number | undefined> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.ZScore({ key: { key }, member } as any);
             return result.value !== undefined ? result.value : undefined;
         },
 
         async zRem(key: string, members: string[]): Promise<number> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.ZRem({ key: { key }, members } as any);
             return Number(result.value ?? 0);
         },
@@ -203,11 +215,13 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
         },
 
         async zRank(key: string, member: string): Promise<number | undefined> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.ZRank({ key: { key }, member } as any);
             return result.value !== undefined ? Number(result.value) : undefined;
         },
 
         async zIncrBy(key: string, member: string, increment: number): Promise<number> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.ZIncrBy({ key: { key }, member, value: increment } as any);
             return Number(result.value ?? 0);
         },
@@ -217,6 +231,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
             cursor: number,
             options?: { match?: string; count?: number }
         ): Promise<{ cursor: number; members: { member: string; score: number }[] }> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.ZScan({
                 key: { key },
                 cursor,
@@ -230,22 +245,26 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
         },
 
         async zRemRangeByLex(key: string, min: string, max: string): Promise<number> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.ZRemRangeByLex({ key: { key }, min, max } as any);
             return Number(result.value ?? 0);
         },
 
         async zRemRangeByRank(key: string, start: number, stop: number): Promise<number> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.ZRemRangeByRank({ key: { key }, start, stop } as any);
             return Number(result.value ?? 0);
         },
 
         async zRemRangeByScore(key: string, min: number, max: number): Promise<number> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.ZRemRangeByScore({ key: { key }, min, max } as any);
             return Number(result.value ?? 0);
         },
 
         async watch(...keys: string[]): Promise<RedisTransaction> {
             const watchResult = await plugin.Watch({ keys });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const transactionId = (watchResult as any).id || (watchResult as any).transactionId;
 
             return createRedisTransaction(plugin, transactionId);
@@ -261,7 +280,9 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
                 overflow?: 'WRAP' | 'SAT' | 'FAIL';
             }>
         ): Promise<number[]> {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.Bitfield({ key, commands } as any);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (result.results || []).map((v: any) => Number(v ?? 0));
         },
 
@@ -289,6 +310,7 @@ export interface RedisTransaction {
     get(key: string): Promise<void>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createRedisTransaction(plugin: any, transactionId: string): RedisTransaction {
     return {
         async multi(): Promise<void> {
@@ -298,6 +320,7 @@ function createRedisTransaction(plugin: any, transactionId: string): RedisTransa
         async exec(): Promise<number[]> {
             const result = await plugin.Exec({ id: transactionId });
             const responses = result.responses || [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return responses.map((r: any) => {
                 if (r.int64Value !== undefined) return Number(r.int64Value.value || r.int64Value);
                 if (r.stringValue !== undefined) return r.stringValue.value || r.stringValue;
