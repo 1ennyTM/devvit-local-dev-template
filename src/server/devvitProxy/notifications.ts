@@ -17,7 +17,7 @@ async function getNotifications(): Promise<NotificationsClient> {
     if (IS_DEV) {
         const { getNotificationsMock, DEV_CONFIG } = await import('./devvitMocks');
         const { createNotificationsAdapter } = await import('./adapters/notificationsAdapter');
-        const notificationsMock = getNotificationsMock();
+        const notificationsMock = await getNotificationsMock();
         cachedNotifications = createNotificationsAdapter(notificationsMock, DEV_CONFIG.userId);
     }
 

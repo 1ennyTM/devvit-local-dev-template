@@ -17,7 +17,7 @@ async function getSettings(): Promise<SettingsClient> {
     if (IS_DEV) {
         const { getSettingsMock } = await import('./devvitMocks');
         const { createSettingsAdapter } = await import('./adapters/settingsAdapter');
-        const settingsMock = getSettingsMock();
+        const settingsMock = await getSettingsMock();
         cachedSettings = createSettingsAdapter(settingsMock);
     }
 

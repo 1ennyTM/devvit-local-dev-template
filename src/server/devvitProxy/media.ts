@@ -17,7 +17,7 @@ async function getMedia(): Promise<MediaClient> {
     if (IS_DEV) {
         const { getMediaMock } = await import('./devvitMocks');
         const { createMediaAdapter } = await import('./adapters/mediaAdapter');
-        const mediaMock = getMediaMock();
+        const mediaMock = await getMediaMock();
         cachedMedia = createMediaAdapter(mediaMock);
     }
 

@@ -17,7 +17,7 @@ async function getScheduler(): Promise<SchedulerClient> {
     if (IS_DEV) {
         const { getSchedulerMock } = await import('./devvitMocks');
         const { createSchedulerAdapter } = await import('./adapters/schedulerAdapter');
-        const schedulerMock = getSchedulerMock();
+        const schedulerMock = await getSchedulerMock();
         cachedScheduler = createSchedulerAdapter(schedulerMock) as SchedulerClient;
     }
 

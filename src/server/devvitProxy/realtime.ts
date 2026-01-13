@@ -17,7 +17,7 @@ async function getRealtime(): Promise<RealtimeClient> {
     if (IS_DEV) {
         const { getRealtimeMock } = await import('./devvitMocks');
         const { createRealtimeAdapter } = await import('./adapters/realtimeAdapter');
-        const realtimeMock = getRealtimeMock();
+        const realtimeMock = await getRealtimeMock();
         cachedRealtime = createRealtimeAdapter(realtimeMock);
     }
 

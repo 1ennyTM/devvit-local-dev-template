@@ -17,7 +17,7 @@ async function getReddit(): Promise<RedditClient> {
     if (IS_DEV) {
         const { getRedditMock } = await import('./devvitMocks');
         const { createRedditAdapter } = await import('./adapters/redditAdapter');
-        const redditMock = getRedditMock();
+        const redditMock = await getRedditMock();
         cachedReddit = createRedditAdapter(redditMock);
     }
 
