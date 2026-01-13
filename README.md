@@ -72,21 +72,48 @@ Client (localhost:7474) --> Vite --> Server (localhost:3002)
 
 ### Usage
 
+**1. Replace `@devvit/web/server` imports with `devvitProxy`:**
+
+```typescript
+// Standard Devvit (no local dev)
+import { redis, reddit, context } from '@devvit/web/server';
+
+// With devvitProxy (local dev enabled)
+import { redis, reddit, context } from './devvitProxy';
+```
+
+The APIs are identical - `devvitProxy` exports the same types from `@devvit/web/server`. Your code stays the same, only the import path changes.
+
+**2. Use environment-aware server startup:**
+
+```typescript
+// In your server entry point (e.g., src/server/index.ts)
+import { startServer } from './devvitProxy/server';
+
+const app = express();
+// ... your routes ...
+
+startServer(app);
+// Local dev: Express on port 3002 with @devvit/test mocks
+// Production: Devvit server wrapper with real APIs
+```
+
+**3. Write your code once, run anywhere:**
+
 ```typescript
 import { redis, reddit, context } from './devvitProxy';
 
-// Example from this template's /api/init endpoint
+// This exact code works in both local dev AND production
 const [count, username] = await Promise.all([
   redis.get('count'),
   reddit.getCurrentUsername(),
 ]);
 
-// Redis operations with full type safety
 await redis.incrBy('count', 1);
-
-// Context access
 const { postId } = context;
 ```
+
+No conditional imports, no environment checks in your code, no editing files twice. The proxy handles environment switching internally via `NODE_ENV`.
 
 The proxy pattern uses exact `@devvit/web/server` types, ensuring TypeScript sees identical APIs in development and production. This provides full IntelliSense and compile-time type safety. Code that runs successfully locally will work in production, though production supports additional APIs beyond what's mocked locally.
 
