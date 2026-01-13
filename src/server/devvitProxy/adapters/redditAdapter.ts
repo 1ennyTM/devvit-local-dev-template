@@ -338,6 +338,10 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
                 reason: options.reason,
             } as any);
         },
+
+        async subscribeToCurrentSubreddit(): Promise<void> {
+            console.log('[RedditAdapter] Mock: subscribeToCurrentSubreddit called');
+        },
     } as unknown as Reddit;
 }
 
@@ -356,6 +360,9 @@ export function createContextAdapter() {
         },
         get userId() {
             return devContext.userId;
+        },
+        get postData() {
+            return devContext.postData;
         },
     };
 }

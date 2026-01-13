@@ -1,12 +1,13 @@
 /** Initializes official @devvit/test mocks for local development. */
 
 export const DEV_CONFIG = {
-    username: 'u/dev-user123',
+    username: 'dev-user123',
     userId: 't2_dev123' as const,
     subredditName: 'dev-subreddit',
     subredditId: 't5_dev456' as const,
     postId: 't3_devpost123' as const,
-} as const;
+    postData: undefined as any,
+};
 
 const DEFAULT_SETTINGS: Record<string, string | number | boolean> = {};
 let redisServer: any | null = null;
