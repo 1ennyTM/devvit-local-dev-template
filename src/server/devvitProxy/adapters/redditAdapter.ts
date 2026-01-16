@@ -211,6 +211,8 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
             subredditName?: string;
             title: string;
             postData?: Record<string, unknown>;
+            flairId?: string;
+            flairText?: string;
         }): Promise<{ id: string; url: string }> {
             const subredditName = options.subredditName ?? devContext.subredditName;
 
@@ -220,6 +222,8 @@ export function createRedditAdapter(redditMock: RedditPluginMock): Reddit {
                     sr: subredditName,
                     title: options.title,
                     kind: 'custom',
+                    flair_id: options.flairId,
+                    flair_text: options.flairText,
                 } as any);
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const postId = (result as any).json?.data?.id ?? (result as any).id ?? devContext.postId;

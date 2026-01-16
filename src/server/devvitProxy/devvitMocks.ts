@@ -7,7 +7,7 @@ export const DEV_CONFIG = {
     subredditId: 't5_dev456' as const,
     postId: 't3_devpost123' as const,
     postData: undefined as any,
-};
+} as const;
 
 const DEFAULT_SETTINGS: Record<string, string | number | boolean> = {};
 let redisServer: any | null = null;
