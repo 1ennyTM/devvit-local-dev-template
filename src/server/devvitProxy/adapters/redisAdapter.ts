@@ -2,26 +2,31 @@
 
 import type { RedisMock } from '@devvit/redis/test';
 import type { redis as devvitRedis } from '@devvit/web/server';
+import { RedisKeyScope } from '@devvit/protos/json/devvit/plugin/redis/redisapi.js';
 
 type Redis = typeof devvitRedis;
+type RedisWithoutGlobal = Omit<Redis, 'global'>;
 
-export function createRedisAdapter(redisMock: RedisMock): Redis {
-    const plugin = redisMock.plugin;
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function createRedisMethods(plugin: any, redisMock: RedisMock, scope: RedisKeyScope): RedisWithoutGlobal {
     return {
         async hGet(key: string, field: string): Promise<string | undefined> {
-            const result = await plugin.HGet({ key, field });
+            const result = await plugin.HGet({ key, field, scope });
             return result.value || undefined;
         },
 
         async hGetAll(key: string): Promise<Record<string, string>> {
-            const result = await plugin.HGetAll({ key });
+            const result = await plugin.HGetAll({ key, scope });
 
             // RedisMock (non-transaction) returns { fieldValues: { field1: value1, field2: value2, ... } }
             // This is because _queueOrRun returns operation() directly without applying mapper
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const fieldValuesObj = (result as any)?.fieldValues;
-            if (fieldValuesObj && typeof fieldValuesObj === 'object' && !Array.isArray(fieldValuesObj)) {
+            if (
+                fieldValuesObj &&
+                typeof fieldValuesObj === 'object' &&
+                !Array.isArray(fieldValuesObj)
+            ) {
                 return fieldValuesObj as Record<string, string>;
             }
 
@@ -47,22 +52,22 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
             // Convert Record to fv array format expected by RedisMock protobuf API
             const fv = Object.entries(fieldValues).map(([field, value]) => ({ field, value }));
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const result = await plugin.HSet({ key, fv } as any);
+            const result = await plugin.HSet({ key, fv, scope } as any);
             return Number(result.value ?? 0);
         },
 
         async hDel(key: string, fields: string[]): Promise<number> {
-            const result = await plugin.HDel({ key, fields });
+            const result = await plugin.HDel({ key, fields, scope });
             return Number(result.value ?? 0);
         },
 
         async hIncrBy(key: string, field: string, increment: number): Promise<number> {
-            const result = await plugin.HIncrBy({ key, field, value: increment });
+            const result = await plugin.HIncrBy({ key, field, value: increment, scope });
             return Number(result.value ?? 0);
         },
 
         async hMGet(key: string, fields: string[]): Promise<(string | undefined)[]> {
-            const result = await plugin.HMGet({ key, fields });
+            const result = await plugin.HMGet({ key, fields, scope });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (result.values || []).map((v: any) => v || undefined);
         },
@@ -78,6 +83,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
                 cursor,
                 pattern: options?.match,
                 count: options?.count,
+                scope,
             } as any);
             return {
                 cursor: Number(result.cursor ?? 0),
@@ -86,23 +92,23 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
         },
 
         async hKeys(key: string): Promise<string[]> {
-            const result = await plugin.HKeys({ key });
+            const result = await plugin.HKeys({ key, scope });
             return result.keys || [];
         },
 
         async hLen(key: string): Promise<number> {
-            const result = await plugin.HLen({ key });
+            const result = await plugin.HLen({ key, scope });
             return Number(result.value ?? 0);
         },
 
         async hSetNX(key: string, field: string, value: string): Promise<boolean> {
-            const result = await plugin.HSetNX({ key, field, value });
+            const result = await plugin.HSetNX({ key, field, value, scope });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (result as any).success === 1;
         },
 
         async get(key: string): Promise<string | undefined> {
-            const result = await plugin.Get({ key });
+            const result = await plugin.Get({ key, scope });
             return result.value || undefined;
         },
 
@@ -115,36 +121,42 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
                     expiration = 1; // minimum 1 second per production
                 }
             }
-            await plugin.Set({ key, value, expiration, nx: false, xx: false });
+            await plugin.Set({ key, value, expiration, nx: false, xx: false, scope });
         },
 
         async incrBy(key: string, increment: number): Promise<number> {
-            const result = await plugin.IncrBy({ key, value: increment });
+            const result = await plugin.IncrBy({ key, value: increment, scope });
             return Number(result.value ?? 0);
         },
 
         async getBytes(key: string): Promise<Uint8Array | undefined> {
-            const result = await plugin.GetBytes({ key });
+            const result = await plugin.GetBytes({ key, scope });
             return result.value || undefined;
         },
 
+        async getBuffer(key: string): Promise<Buffer | undefined> {
+            const result = await plugin.GetBytes({ key, scope });
+            if (!result.value) return undefined;
+            return Buffer.from(result.value);
+        },
+
         async getRange(key: string, start: number, end: number): Promise<string> {
-            const result = await plugin.GetRange({ key, start, end });
+            const result = await plugin.GetRange({ key, start, end, scope });
             return result.value || '';
         },
 
         async setRange(key: string, offset: number, value: string): Promise<number> {
-            const result = await plugin.SetRange({ key, offset, value });
+            const result = await plugin.SetRange({ key, offset, value, scope });
             return Number(result.value ?? 0);
         },
 
         async strlen(key: string): Promise<number> {
-            const result = await plugin.Strlen({ key });
+            const result = await plugin.Strlen({ key, scope });
             return Number(result.value ?? 0);
         },
 
         async mGet(keys: string[]): Promise<(string | null)[]> {
-            const result = await plugin.MGet({ keys });
+            const result = await plugin.MGet({ keys, scope });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (result.values || []).map((v: any) => v || null);
         },
@@ -153,83 +165,89 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
             // Convert Record to kv array format expected by RedisMock protobuf API
             const kv = Object.entries(keyValues).map(([key, value]) => ({ key, value }));
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await plugin.MSet({ kv } as any);
+            await plugin.MSet({ kv, scope } as any);
         },
 
         async del(key: string): Promise<number> {
-            const result = await plugin.Del({ keys: [key] });
+            const result = await plugin.Del({ keys: [key], scope });
             return Number(result.value ?? 0);
         },
 
         async exists(key: string): Promise<boolean> {
-            const result = await plugin.Exists({ keys: [key] });
+            const result = await plugin.Exists({ keys: [key], scope });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return ((result as any).existingKeys || 0) > 0;
         },
 
         async type(key: string): Promise<string> {
-            const result = await plugin.Type({ key });
+            const result = await plugin.Type({ key, scope });
             return result.value || 'none';
         },
 
         async rename(key: string, newKey: string): Promise<void> {
-            await plugin.Rename({ key, newKey });
+            await plugin.Rename({ key, newKey, scope });
         },
 
         async expire(key: string, seconds: number): Promise<boolean> {
-            await plugin.Expire({ key, seconds });
+            await plugin.Expire({ key, seconds, scope });
             return true;
         },
 
         async expireTime(key: string): Promise<number> {
-            const result = await plugin.ExpireTime({ key });
+            const result = await plugin.ExpireTime({ key, scope });
             return Number(result.value ?? -1);
         },
 
         async zAdd(key: string, ...members: { score: number; member: string }[]): Promise<number> {
-            const result = await plugin.ZAdd({ key, members });
+            const result = await plugin.ZAdd({ key, members, scope });
             return Number(result.value ?? 0);
         },
 
         async zRange(
             key: string,
-            start: number,
-            stop: number
+            start: number | string,
+            stop: number | string,
+            options?: { by?: 'rank' | 'score' | 'lex'; reverse?: boolean; limit?: { offset: number; count: number } }
         ): Promise<{ member: string; score: number }[]> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const result = await plugin.ZRange({
-                key: { key },
+                key: { key, scope },
                 start: start.toString(),
                 stop: stop.toString(),
+                rev: options?.reverse ?? false,
+                byScore: options?.by === 'score',
+                byLex: options?.by === 'lex',
+                offset: options?.limit?.offset,
+                count: options?.limit?.count,
             } as any);
             return result.members ?? [];
         },
 
         async zScore(key: string, member: string): Promise<number | undefined> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const result = await plugin.ZScore({ key: { key }, member } as any);
+            const result = await plugin.ZScore({ key: { key, scope }, member } as any);
             return result.value !== undefined ? result.value : undefined;
         },
 
         async zRem(key: string, members: string[]): Promise<number> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const result = await plugin.ZRem({ key: { key }, members } as any);
+            const result = await plugin.ZRem({ key: { key, scope }, members } as any);
             return Number(result.value ?? 0);
         },
 
         async zCard(key: string): Promise<number> {
-            const result = await plugin.ZCard({ key });
+            const result = await plugin.ZCard({ key, scope });
             return Number(result.value ?? 0);
         },
 
         async zRank(key: string, member: string): Promise<number | undefined> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const result = await plugin.ZRank({ key: { key }, member } as any);
+            const result = await plugin.ZRank({ key: { key, scope }, member } as any);
             return result.value !== undefined ? Number(result.value) : undefined;
         },
 
         async zIncrBy(key: string, member: string, increment: number): Promise<number> {
-            const result = await plugin.ZIncrBy({ key, member, value: increment });
+            const result = await plugin.ZIncrBy({ key, member, value: increment, scope });
             return Number(result.value ?? 0);
         },
 
@@ -243,6 +261,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
                 cursor,
                 pattern: options?.match,
                 count: options?.count,
+                scope,
             });
             return {
                 cursor: Number(result.cursor ?? 0),
@@ -252,28 +271,28 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
 
         async zRemRangeByLex(key: string, min: string, max: string): Promise<number> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const result = await plugin.ZRemRangeByLex({ key: { key }, min, max } as any);
+            const result = await plugin.ZRemRangeByLex({ key: { key, scope }, min, max } as any);
             return Number(result.value ?? 0);
         },
 
         async zRemRangeByRank(key: string, start: number, stop: number): Promise<number> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const result = await plugin.ZRemRangeByRank({ key: { key }, start, stop } as any);
+            const result = await plugin.ZRemRangeByRank({ key: { key, scope }, start, stop } as any);
             return Number(result.value ?? 0);
         },
 
         async zRemRangeByScore(key: string, min: number, max: number): Promise<number> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const result = await plugin.ZRemRangeByScore({ key: { key }, min, max } as any);
+            const result = await plugin.ZRemRangeByScore({ key: { key, scope }, min, max } as any);
             return Number(result.value ?? 0);
         },
 
         async watch(...keys: string[]): Promise<RedisTransaction> {
-            const watchResult = await plugin.Watch({ keys });
+            const watchResult = await plugin.Watch({ keys, scope });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const transactionId = (watchResult as any).id || (watchResult as any).transactionId;
 
-            return createRedisTransaction(plugin, transactionId);
+            return createRedisTransaction(plugin, transactionId, scope);
         },
 
         async bitfield(
@@ -287,7 +306,7 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
             }>
         ): Promise<number[]> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const result = await plugin.Bitfield({ key, commands } as any);
+            const result = await plugin.Bitfield({ key, commands, scope } as any);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (result.results || []).map((v: any) => Number(v ?? 0));
         },
@@ -303,6 +322,17 @@ export function createRedisAdapter(redisMock: RedisMock): Redis {
                 zsets: 0,
             };
         },
+    } as unknown as RedisWithoutGlobal;
+}
+
+export function createRedisAdapter(redisMock: RedisMock): Redis {
+    const plugin = redisMock.plugin;
+    const methods = createRedisMethods(plugin, redisMock, RedisKeyScope.INSTALLATION);
+
+    return {
+        ...methods,
+        // Global redis for cross-subreddit data persistence
+        global: createRedisMethods(plugin, redisMock, RedisKeyScope.GLOBAL),
     } as unknown as Redis;
 }
 
@@ -317,7 +347,7 @@ export interface RedisTransaction {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function createRedisTransaction(plugin: any, transactionId: string): RedisTransaction {
+function createRedisTransaction(plugin: any, transactionId: string, scope: RedisKeyScope): RedisTransaction {
     return {
         async multi(): Promise<void> {
             await plugin.Multi({ id: transactionId });
@@ -347,7 +377,7 @@ function createRedisTransaction(plugin: any, transactionId: string): RedisTransa
         },
 
         async incrBy(key: string, increment: number): Promise<void> {
-            await plugin.IncrBy({ key, value: increment, transactionId: { id: transactionId } });
+            await plugin.IncrBy({ key, value: increment, scope, transactionId: { id: transactionId } });
         },
 
         async set(key: string, value: string, options?: { expiration?: Date }): Promise<void> {
@@ -359,11 +389,19 @@ function createRedisTransaction(plugin: any, transactionId: string): RedisTransa
                     expiration = 1; // minimum 1 second per production
                 }
             }
-            await plugin.Set({ key, value, expiration, nx: false, xx: false, transactionId: { id: transactionId } });
+            await plugin.Set({
+                key,
+                value,
+                expiration,
+                nx: false,
+                xx: false,
+                scope,
+                transactionId: { id: transactionId },
+            });
         },
 
         async get(key: string): Promise<void> {
-            await plugin.Get({ key, transactionId: { id: transactionId } });
+            await plugin.Get({ key, scope, transactionId: { id: transactionId } });
         },
     };
 }
